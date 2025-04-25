@@ -4,6 +4,10 @@ import random
 from collections.abc import AsyncIterator
 
 import websockets.asyncio.client
+from websockets.client import BACKOFF_FACTOR
+from websockets.client import BACKOFF_INITIAL_DELAY
+from websockets.client import BACKOFF_MAX_DELAY
+from websockets.client import BACKOFF_MIN_DELAY
 from websockets.exceptions import InvalidStatusCode
 
 from pysignalr.exceptions import NegotiationFailure
@@ -30,7 +34,7 @@ async def __aiter__(
     Raises:
         NegotiationFailure: If the connection URL is no longer valid during negotiation.
     """
-    backoff_delay = self.BACKOFF_MIN
+    backoff_delay = BACKOFF_MIN_DELAY
     while True:
         try:
             async with self as protocol:
@@ -42,8 +46,8 @@ async def __aiter__(
         except Exception:
             # Add a random initial delay between 0 and 5 seconds.
             # See 7.2.3. Recovering from Abnormal Closure in RFC 6544.
-            if backoff_delay == self.BACKOFF_MIN:
-                initial_delay = random.random() * self.BACKOFF_INITIAL
+            if backoff_delay == BACKOFF_MIN_DELAY:
+                initial_delay = random.random() * BACKOFF_INITIAL_DELAY
                 self.logger.info(
                     '! connect failed; reconnecting in %.1f seconds',
                     initial_delay,
@@ -58,12 +62,12 @@ async def __aiter__(
                 )
                 await asyncio.sleep(int(backoff_delay))
             # Increase delay with truncated exponential backoff.
-            backoff_delay = backoff_delay * self.BACKOFF_FACTOR
-            backoff_delay = min(backoff_delay, self.BACKOFF_MAX)
+            backoff_delay = backoff_delay * BACKOFF_FACTOR
+            backoff_delay = min(backoff_delay, BACKOFF_MAX_DELAY)
             continue
         else:
             # Connection succeeded - reset backoff delay.
-            backoff_delay = self.BACKOFF_MIN
+            backoff_delay = BACKOFF_MIN_DELAY
 
 
 # Override the __aiter__ method of the Connect class
